@@ -6,9 +6,9 @@ import {
 import { GameSetting, GameType } from "@/server/models/custom/games";
 import { gameSettingSelector } from "@/server/models/db/game_settings";
 
-async function getGameSetting(
+async function getGameSetting<T = GameSetting>(
   gt: GameType
-): Promise<GameSetting | ErrorResponse> {
+): Promise<SuccessResponse<T> | ErrorResponse<T>> {
   const { data, error } = await supabase
     .from("games_settings")
     .select(gameSettingSelector().game_settings().game_type().build())
@@ -16,35 +16,50 @@ async function getGameSetting(
     .single();
 
   if (error) {
-    return { code: error.code, message: error.message };
+    return { code: convertCode(error.code), message: error.message };
   }
 
   if (!data.game_settings && !data.game_type) {
     return {
-      code: "404",
+      code: 404,
       message: `Game setting for type ${gt} not found.`,
     };
   }
 
-  return data.game_settings as GameSetting;
+  return {
+    code: 200,
+    message: data.game_settings as T,
+  };
 }
 
-async function updateGameSetting(
+async function updateGameSetting<T = GameSetting>(
   new_gt: GameSetting
-): Promise<ErrorResponse | SuccessResponse> {
+): Promise<ErrorResponse<T> | SuccessResponse<T>> {
   const { error } = await supabase
     .from("games_settings")
     .update(new_gt)
-    .eq("game_type", new_gt.gameType);
+    .eq("game_type", new_gt.game_type);
 
   if (error) {
-    return { code: error.code, message: error.message };
+    return { code: convertCode(error.code), message: error.message };
   }
-
   return {
-    code: "200",
+    code: 200,
     message: "Game setting updated successfully.",
   };
 }
 
-export { getGameSetting, updateGameSetting };
+async function addNewGameSetting<T = GameSetting>(
+  new_gt: GameSetting
+): Promise<ErrorResponse<T> | SuccessResponse<T>> {
+  const { error } = await supabase.from("games_settings").insert(new_gt);
+  if (error) {
+    return { code: convertCode(error.code), message: error.message };
+  }
+
+  return {
+    code: 200,
+    message: "Game setting added successfully.",
+  };
+}
+export { getGameSetting, updateGameSetting, addNewGameSetting };

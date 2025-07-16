@@ -1,9 +1,9 @@
-export interface ErrorResponse {
-    code: string;
-    message: string;
+export interface ErrorResponse<T> {
+    code: number;
+    message: string | T;
 }
 
-export interface SuccessResponse {
-    code: string;
-    message: string;
+export interface SuccessResponse<T> {
+    code: number;
+    message: string | T;
 }

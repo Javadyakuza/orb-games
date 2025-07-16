@@ -1,4 +1,4 @@
-import { createSelector } from "../global";
+import { createSelector, DynamicSelector } from "../global";
 
 export type GameSettings = {
   id?: string;
@@ -13,6 +13,11 @@ export const gameSettingStatics = [
   "game_type",
   "game_settings",
 ] as const;
+
+// export const gameSettingSelector = () => {
+//   return createSelector(gameSettingStatics);
+// };
+
 
 export const gameSettingSelector = () => {
   return createSelector(gameSettingStatics);
