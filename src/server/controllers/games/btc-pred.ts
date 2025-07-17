@@ -12,7 +12,7 @@ import {
   GameStatus,
 } from "@/server/models/custom/games";
 import { toNano } from "@ton/core";
-import { runBtcPredGame } from "@/server/services/games/btcPred";
+import { playBtcPredGame } from "@/server/services/games/btcPred";
 import { getUser, updateUser, updateUserBalance } from "../users/user";
 import { addGameHistory, updateGameHistory } from "./game-history";
 import { Users } from "@/server/models/db/users";
@@ -32,7 +32,7 @@ async function runBtcPredictionGame(
     )
   );
 
-  let game_hash = hash(btc_pred_req.game_type + btc_pred_req + payout, {
+  let game_hash = hash(btc_pred_req.game_type + btc_pred_req.wallet_address + String(payout), {
     seed: Date.now(),
   }).toString();
 
@@ -53,7 +53,7 @@ async function runBtcPredictionGame(
   }
 
   // calling the game btc pred game service
-  let btc_pred_res = await runBtcPredGame({
+  let btc_pred_res = await playBtcPredGame({
     watch_time_milli_secs: btc_pred_req.watch_time_milli_secs,
     pred: btc_pred_req.pred,
   });
@@ -75,6 +75,8 @@ async function runBtcPredictionGame(
       message: update_res.message as string,
     };
   }
+
+  // updating the user balance
   let user_balance = (await getUser(btc_pred_req.wallet_address))
     .message as Users;
 

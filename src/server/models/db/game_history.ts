@@ -6,7 +6,7 @@ export interface GameHistory {
   game_hash?: string; // not null but handled in controller
   wallet_address: string;
   game_type: string;
-  payout: number;
+  payout?: number;
   status: string;
   game_result?: any;
   won?: boolean;

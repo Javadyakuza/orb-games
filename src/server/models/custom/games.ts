@@ -70,7 +70,7 @@ export type BtcPredResponse = {
 };
 
 // the schema for the api handler request
-export type FortuneWheel = {
+export type FortuneWheelReq = {
   amount: number;
   game_type: "fortune_wheel";
   wallet_address: string;
@@ -79,6 +79,7 @@ export type FortuneWheel = {
 // schema for the game runner
 export interface FortuneWheelGameParams {
   amount: number;
+  multipliers: number[];
 }
 
 // the schema for the game runner response
