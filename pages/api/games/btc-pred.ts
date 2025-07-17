@@ -16,7 +16,7 @@ export default async function handler(
           .json({ error: "Invalid or missing btc pred game params", gd });
       }
 
-      let response = await runBtcPredictionGame(game_data);
+      let response = await runBtcPredictionGame(gd);
 
       if (response.code === 200) {
         return res.status(200).json(response.message);
@@ -25,7 +25,7 @@ export default async function handler(
       }
     } catch (error) {
       return res.status(400).json({
-        error: "Invalid or missing user adding parameters",
+        error: "Invalid or missing btc pred game parameters",
         error_msg: error,
       });
     }
