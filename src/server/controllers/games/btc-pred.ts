@@ -17,7 +17,7 @@ import { getUser, updateUser, updateUserBalance } from "../users/user";
 import { addGameHistory, updateGameHistory } from "./game-history";
 import { Users } from "@/server/models/db/users";
 
-async function runPredictionGame(
+async function runBtcPredictionGame(
   btc_pred_req: BtcPredReq
 ): Response<GameHistory> {
   // initiating the game inside the database
@@ -108,4 +108,4 @@ async function runPredictionGame(
   };
 }
 
-export { runPredictionGame };
+export { runBtcPredictionGame };
