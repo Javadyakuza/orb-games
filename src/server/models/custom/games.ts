@@ -16,9 +16,13 @@ export interface BtcPredSetting extends BaseGameSetting {
   game_settings: { multiplier: number };
 }
 
+export type SlotsSettingGameSettings = {
+  multiplier: number;
+  reel: Stops;
+};
 export interface SlotsSetting extends BaseGameSetting {
   game_type: "slots";
-  game_settings: { multiplier: number };
+  game_settings: SlotsSettingGameSettings;
 }
 
 export type GameSetting = FortuneWheelSetting | BtcPredSetting | SlotsSetting;
@@ -88,5 +92,27 @@ export interface FortuneWheelGameResponse {
   final_multiplier: number;
   multipliers_options: number[];
 }
+export interface Stop {
+  id: number;
+  element: string;
+}
+export type Stops = Stop[];
 
+// the schema for the api handler request
+export type SlotsReq = {
+  amount: number;
+  game_type: "slots";
+  wallet_address: string;
+};
 
+// schema for the game runner
+export interface SlotsGameParams {
+  amount: number;
+  stops: Stops;
+}
+
+// the schema for the game runner response
+export interface SlotsGameResponse {
+  won: boolean;
+  final_result: [Stop, Stop, Stop];
+}

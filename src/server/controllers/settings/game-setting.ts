@@ -1,6 +1,15 @@
 import { supabase } from "@/server/middleware/supabase";
 import { Response } from "@/server/models/custom/response";
-import { GameSetting, GameType } from "@/server/models/custom/games";
+import {
+  BtcPredSetting,
+  FortuneWheelSetting,
+  GameSetting,
+  GameType,
+  isBtcPredSetting,
+  isFortuneWheelSetting,
+  isSlotsSetting,
+  SlotsSetting,
+} from "@/server/models/custom/games";
 import { gameSettingSelector } from "@/server/models/db/game_settings";
 
 async function getGameSetting(gt: GameType): Response<GameSetting> {
@@ -23,7 +32,16 @@ async function getGameSetting(gt: GameType): Response<GameSetting> {
 
   return {
     code: 200,
-    message: data.game_settings as GameSetting,
+    message: {
+      game_type: gt,
+      game_settings: isFortuneWheelSetting(data.game_settings as GameSetting)
+        ? (data.game_settings as FortuneWheelSetting)
+        : isBtcPredSetting(data.game_settings as GameSetting)
+        ? (data.game_settings as BtcPredSetting)
+        : isSlotsSetting(data.game_settings as GameSetting)
+        ? (data.game_settings as SlotsSetting)
+        : data.game_settings,
+    },
   };
 }
 

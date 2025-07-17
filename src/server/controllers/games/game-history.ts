@@ -1,6 +1,6 @@
 import { GameHistory, gameHistorySelector } from "@/server/models/db/game_history";
-import { Response } from "@/server/models/custom/response";
 import { supabase } from "@/server/middleware/supabase";
+import { Response } from "@/server/models/custom/response";
 
 async function getGamesHistory(wallet_address: string): Response<GameHistory> {
   //   fetching the games history from the database based on the wallet address of the user
