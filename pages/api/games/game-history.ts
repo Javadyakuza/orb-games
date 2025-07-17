@@ -13,7 +13,7 @@ export default async function handler(
       if (!wallet_address) {
         return res
           .status(400)
-          .json({ error: "Invalid or missing game type", addr });
+          .json({ error: "Invalid or missing parameter", addr });
       }
 
       let games_history = await getGamesHistory(addr);
@@ -25,7 +25,7 @@ export default async function handler(
     } catch (error) {
       return res
         .status(400)
-        .json({ error: "Invalid or missing game type", error_msg: error });
+        .json({ error: "Invalid or missing parameter", error_msg: error });
     }
   } else {
     return res.status(405).json({ error: "Method not allowed" });
