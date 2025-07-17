@@ -1,9 +1,30 @@
-import { GameHistory } from "@/server/models/db/game_history";
+import { GameHistory, gameHistorySelector } from "@/server/models/db/game_history";
 import { Response } from "@/server/models/custom/response";
 import { supabase } from "@/server/middleware/supabase";
 
-async function getGameHistory(): Response<GameHistory> {
-  //   fetching the game history from the database
+async function getGamesHistory(wallet_address: string): Response<GameHistory> {
+  //   fetching the games history from the database based on the wallet address of the user
+  const { data, error } = await supabase
+    .from("game_history")
+    .select(gameHistorySelector().all().build())
+    .eq("wallet_address", wallet_address)
+    .single();
+
+  if (error) {
+    return { code: convertCode(error.code), message: error.message };
+  }
+
+  if (!data) {
+    return {
+      code: 404,
+      message: `Game history for wallet address ${wallet_address} not found.`,
+    };
+  }
+
+  return {
+    code: 200,
+    message: data as GameHistory,
+  };
 }
 
 async function updateGameHistory(new_gh: GameHistory): Response<GameHistory> {
@@ -38,4 +59,4 @@ async function addGameHistory(gh: GameHistory): Response<GameHistory> {
   };
 }
 
-export { getGameHistory, updateGameHistory, addGameHistory };
+export { getGamesHistory, updateGameHistory, addGameHistory };
