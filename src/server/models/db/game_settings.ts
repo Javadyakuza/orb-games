@@ -14,9 +14,7 @@ export const gameSettingStatics = [
   "game_settings",
 ] as const;
 
-// export const gameSettingSelector = () => {
-//   return createSelector(gameSettingStatics);
-// };
+
 
 
 export const gameSettingSelector = () => {

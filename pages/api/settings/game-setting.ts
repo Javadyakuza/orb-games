@@ -5,7 +5,7 @@ import {
   addNewGameSetting,
   getGameSetting,
   updateGameSetting,
-} from "@/server/controllers/seetings/game-setting";
+} from "@/server/controllers/settings/game-setting";
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
