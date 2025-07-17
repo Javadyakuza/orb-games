@@ -45,6 +45,7 @@ export enum BtcPredSide {
   UP = "up",
   DOWN = "down",
 }
+// the schema for api handler request
 export type BtcPredReq = {
   game_type: "btc_pred";
   wallet_address: string;
@@ -53,15 +54,38 @@ export type BtcPredReq = {
   watch_time_milli_secs: number;
 };
 
+// schema for the game runner
 export interface BtcPredGameParams {
   watch_time_milli_secs: number;
   pred: BtcPredSide;
-} 
+}
 
+// schema for the game runner response
 export type BtcPredResponse = {
   won: boolean;
   start_price: number;
   end_price: number;
   watch_time_milli_secs: number;
   pred: BtcPredSide;
+};
+
+// the schema for the api handler request
+export type FortuneWheel = {
+  amount: number;
+  game_type: "fortune_wheel";
+  wallet_address: string;
+};
+
+// schema for the game runner
+export interface FortuneWheelGameParams {
+  amount: number;
 }
+
+// the schema for the game runner response
+export interface FortuneWheelGameResponse {
+  won: boolean;
+  final_multiplier: number;
+  multipliers_options: number[];
+}
+
+
