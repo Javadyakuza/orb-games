@@ -1,13 +1,9 @@
 import { supabase } from "@/server/middleware/supabase";
-import {
-  Response,
-} from "@/server/models/custom/response";
+import { Response } from "@/server/models/custom/response";
 import { GameSetting, GameType } from "@/server/models/custom/games";
 import { gameSettingSelector } from "@/server/models/db/game_settings";
 
-async function getGameSetting<T = GameSetting>(
-  gt: GameType
-): Response<T> {
+async function getGameSetting(gt: GameType): Response<GameSetting> {
   const { data, error } = await supabase
     .from("games_settings")
     .select(gameSettingSelector().game_settings().game_type().build())
@@ -27,13 +23,11 @@ async function getGameSetting<T = GameSetting>(
 
   return {
     code: 200,
-    message: data.game_settings as T,
+    message: data.game_settings as GameSetting,
   };
 }
 
-async function updateGameSetting<T = GameSetting>(
-  new_gt: GameSetting
-): Response<T> {
+async function updateGameSetting(new_gt: GameSetting): Response<GameSetting> {
   const { error } = await supabase
     .from("games_settings")
     .update(new_gt)
@@ -48,9 +42,7 @@ async function updateGameSetting<T = GameSetting>(
   };
 }
 
-async function addNewGameSetting<T = GameSetting>(
-  new_gt: GameSetting
-): Response<T> {
+async function addNewGameSetting(new_gt: GameSetting): Response<GameSetting> {
   const { error } = await supabase.from("games_settings").insert(new_gt);
   if (error) {
     return { code: convertCode(error.code), message: error.message };

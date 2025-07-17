@@ -13,10 +13,13 @@ import {
 } from "@/server/models/custom/games";
 import { toNano } from "@ton/core";
 import { runBtcPredGame } from "@/server/services/games/btcPred";
+import { getUser, updateUser, updateUserBalance } from "../users/user";
+import { addGameHistory, updateGameHistory } from "./game-history";
+import { Users } from "@/server/models/db/users";
 
-async function runPredictionGame<T = GameHistory>(
+async function runPredictionGame(
   btc_pred_req: BtcPredReq
-): Response<T> {
+): Response<GameHistory> {
   // initiating the game inside the database
   let btc_pred_settings = await getGameSetting("btc_pred");
 
@@ -29,12 +32,9 @@ async function runPredictionGame<T = GameHistory>(
     )
   );
 
-  let game_hash = hash(
-    btc_pred_req.game_type + btc_pred_req + btc_pred_req.payout,
-    {
-      seed: Date.now(),
-    }
-  ).toString();
+  let game_hash = hash(btc_pred_req.game_type + btc_pred_req + payout, {
+    seed: Date.now(),
+  }).toString();
 
   let init_res = await addGameHistory({
     wallet_address: btc_pred_req.wallet_address,
@@ -58,66 +58,54 @@ async function runPredictionGame<T = GameHistory>(
     pred: btc_pred_req.pred,
   });
 
-  if (btc_pred_res.won) {
-    // updating the game history in the database
-    let update_res = await updateGameHistory({
+  // updating the game history in the database
+  let update_res = await updateGameHistory({
+    game_hash,
+    status: GameStatus.FINISHED,
+    won: btc_pred_res.won,
+    payout: payout,
+    wallet_address: btc_pred_req.wallet_address,
+    game_type: "btc_pred",
+    amount: btc_pred_req.amount,
+  });
+
+  if (update_res.code !== 200) {
+    return {
+      code: convertCode(update_res.message as string),
+      message: update_res.message as string,
+    };
+  }
+  let user_balance = (await getUser(btc_pred_req.wallet_address))
+    .message as Users;
+
+  let new_balance = btc_pred_res.won
+    ? user_balance.balance + payout
+    : user_balance.balance - Number(toNano(btc_pred_req.amount));
+
+  let update_user_res = await updateUserBalance(
+    new_balance,
+    btc_pred_req.wallet_address
+  );
+
+  if (update_user_res.code !== 200) {
+    return {
+      code: convertCode(update_user_res.message as string),
+      message: update_user_res.message as string,
+    };
+  }
+  return {
+    code: 200,
+    message: {
       game_hash,
-      status: GameStatus.FINISHED,
-      won: btc_pred_res.won,
-      payout: payout,
       wallet_address: btc_pred_req.wallet_address,
       game_type: "btc_pred",
+      payout,
+      status: GameStatus.FINISHED,
+      game_result: JSON.parse(JSON.stringify(btc_pred_res)),
+      won: btc_pred_res.won,
       amount: btc_pred_req.amount,
-    });
-
-    if (update_res.code !== 200) {
-      return {
-        code: convertCode(update_res.message as string),
-        message: update_res.message as string,
-      };
-    }
-
-    //updating the users balance in the database
-    
-  }
-}
-
-async function getGameHistory<T = GameHistory>(): Response<T> {
-  //   fetching the game history from the database
-}
-
-async function updateGameHistory<T = GameHistory>(
-  new_gh: GameHistory
-): Response<T> {
-  // updating the game history in the database
-  const { error } = await supabase
-    .from("game_history")
-    .update(new_gh)
-    .eq("game_hash", new_gh.game_hash);
-
-  if (error) {
-    return { code: convertCode(error.code), message: error.message };
-  }
-  return {
-    code: 200,
-    message: "Game history updated successfully.",
+    },
   };
 }
 
-async function addGameHistory<T = GameHistory>(gh: GameHistory): Response<T> {
-  // checking if the game was already initiated
-
-  // adding a new game history to the database
-  const { error } = await supabase.from("game_history").insert(gh);
-
-  if (error) {
-    return { code: convertCode(error.code), message: error.message };
-  }
-
-  return {
-    code: 200,
-    message: "Game history initiated successfully.",
-  };
-}
-
-export { runPredictionGame, getGameHistory, updateGameHistory, addGameHistory };
+export { runPredictionGame };

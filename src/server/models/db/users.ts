@@ -16,6 +16,6 @@ export const usersStatics = [
   "telegram_id",
 ] as const;
 
-export const gameHistorySelector = () => {
+export const usersSelector = () => {
   return createSelector(usersStatics);
 };
