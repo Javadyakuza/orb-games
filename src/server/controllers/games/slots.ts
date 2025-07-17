@@ -18,11 +18,13 @@ import { Users } from "@/server/models/db/users";
 export async function runSlotsGame(
   slots_req: SlotsReq
 ): Promise<Response<GameHistory>> {
+  console.log(slots_req);
   // Get game settings
   const gameSettingResponse = await getGameSetting("slots");
   const gd = gameSettingResponse.message as SlotsSetting;
-  let gs: SlotsSettingGameSettings = JSON.parse(String(gd.game_settings));
-
+  console.log(gd);
+  let gs: SlotsSettingGameSettings = gd.game_settings;
+  console.log(gs);
   let payout = Number(toNano(BigInt(slots_req.amount) * BigInt(gs.multiplier)));
 
   let game_hash = hash(
@@ -52,8 +54,8 @@ export async function runSlotsGame(
   let slots_res = await playSlotsGame({
     amount: slots_req.amount,
     stops: gs.reel,
+    payouts: gs.payouts,
   });
-
 
   // updating the game history in the database
   let update_res = await updateGameHistory({
@@ -74,8 +76,7 @@ export async function runSlotsGame(
   }
 
   // updating the user balance
-  let user_balance = (await getUser(slots_req.wallet_address))
-    .message as Users;
+  let user_balance = (await getUser(slots_req.wallet_address)).message as Users;
 
   let new_balance = slots_res.won
     ? user_balance.balance + payout

@@ -19,7 +19,9 @@ export interface BtcPredSetting extends BaseGameSetting {
 export type SlotsSettingGameSettings = {
   multiplier: number;
   reel: Stops;
+  payouts: Payouts;
 };
+
 export interface SlotsSetting extends BaseGameSetting {
   game_type: "slots";
   game_settings: SlotsSettingGameSettings;
@@ -98,6 +100,12 @@ export interface Stop {
 }
 export type Stops = Stop[];
 
+export type Payout = {
+  element: string;
+  payout: number;
+};
+
+export type Payouts = Payout[];
 // the schema for the api handler request
 export type SlotsReq = {
   amount: number;
@@ -109,10 +117,12 @@ export type SlotsReq = {
 export interface SlotsGameParams {
   amount: number;
   stops: Stops;
+  payouts: Payouts;
 }
 
 // the schema for the game runner response
 export interface SlotsGameResponse {
   won: boolean;
   final_result: [Stop, Stop, Stop];
+  payout: number; // Optional payout if won
 }
