@@ -38,4 +38,4 @@ async function addTxHistory(tx_data: Users): Response<TxHistory> {
   };
 }
 
-export { getTxHIstories, addTxHistory };
+export { getTxHIstories };
