@@ -1,5 +1,44 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getGamesHistory } from "@/server/controllers/games/game-history";
+
+/**
+ * @swagger
+ * /api/games-history:
+ *   get:
+ *     summary: Fetch game history for a wallet address
+ *     description: Retrieves the historical gameplay data for a user based on their wallet address.
+ *     parameters:
+ *       - name: wallet_address
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "addr_test1q..."
+ *     responses:
+ *       200:
+ *         description: Game history fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   game_type:
+ *                     type: string
+ *                     example: "btc-pred"
+ *                   result:
+ *                     type: string
+ *                     example: "win"
+ *                   timestamp:
+ *                     type: string
+ *                     format: date-time
+ *       400:
+ *         description: Missing or invalid wallet address
+ *       500:
+ *         description: Internal server error
+ */
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

@@ -1,14 +1,59 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Address, Dictionary } from "@ton/core";
-import { GameSetting, GameType } from "@/server/models/custom/games";
-import {
-  addNewGameSetting,
-  getGameSetting,
-  updateGameSetting,
-} from "@/server/controllers/settings/game-setting";
-import { addUser, getUser, updateUser } from "@/server/controllers/users/user";
-import { Users } from "@/server/models/db/users";
+
 import { getTxHIstories } from "@/server/controllers/transactions/tx-history";
+
+/**
+ * @swagger
+ * /api/tx-history:
+ *   get:
+ *     summary: Fetch transaction history for a wallet address
+ *     description: Retrieves the transaction history associated with a provided wallet address.
+ *     parameters:
+ *       - name: wallet_address
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "addr_test1q..."
+ *     responses:
+ *       200:
+ *         description: Transaction history successfully retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   tx_hash:
+ *                     type: string
+ *                   amount:
+ *                     type: number
+ *                   timestamp:
+ *                     type: string
+ *                     format: date-time
+ *       400:
+ *         description: Bad request due to missing or invalid wallet address
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid or missing parameter"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Internal server error"
+ */
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

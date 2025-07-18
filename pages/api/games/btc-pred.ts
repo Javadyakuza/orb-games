@@ -2,6 +2,35 @@ import { runBtcPredictionGame } from "@/server/controllers/games/btc-pred";
 import { BtcPredReq } from "@/server/models/custom/games";
 import type { NextApiRequest, NextApiResponse } from "next";
 
+/**
+ * @swagger
+ * /api/btc-pred:
+ *   post:
+ *     summary: Run a BTC prediction game round
+ *     description: Executes game logic based on provided prediction parameters for BTC.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BtcPredReq'
+ *     responses:
+ *       200:
+ *         description: BTC prediction game executed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 result:
+ *                   type: string
+ *                   example: "win"
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Internal server error
+ */
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse

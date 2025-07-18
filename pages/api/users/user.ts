@@ -1,19 +1,69 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Address, Dictionary } from "@ton/core";
-import { GameSetting, GameType } from "@/server/models/custom/games";
-import {
-  addNewGameSetting,
-  getGameSetting,
-  updateGameSetting,
-} from "@/server/controllers/settings/game-setting";
 import { addUser, getUser, updateUser } from "@/server/controllers/users/user";
 import { Users } from "@/server/models/db/users";
+
+
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: Fetch user by wallet address
+ *     description: Returns user data based on the given wallet address query parameter.
+ *     parameters:
+ *       - name: wallet_address
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "addr_test1q..."
+ *     responses:
+ *       200:
+ *         description: User found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ *
+ *   post:
+ *     summary: Add a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       200:
+ *         description: User successfully added
+ *       400:
+ *         description: Invalid user data
+ *
+ *   put:
+ *     summary: Update an existing user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       200:
+ *         description: User successfully updated
+ *       400:
+ *         description: Invalid user update data
+ *       404:
+ *         description: User not found
+ */
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method == "GET") {
-    // returning the requested game settings
     let { wallet_address } = req.query;
     try {
       let address: string = wallet_address as string;
@@ -74,12 +124,10 @@ export default async function handler(
         return res.status(response.code).json(response.message);
       }
     } catch (error) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid or missing user adding parameters",
-          error_msg: error,
-        });
+      return res.status(400).json({
+        error: "Invalid or missing user adding parameters",
+        error_msg: error,
+      });
     }
   } else {
     return res.status(405).json({ error: "Method not allowed" });

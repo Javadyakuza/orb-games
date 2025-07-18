@@ -6,6 +6,61 @@ import {
   getGameSetting,
   updateGameSetting,
 } from "@/server/controllers/settings/game-setting";
+
+/**
+ * @swagger
+ * /api/game-setting:
+ *   get:
+ *     summary: Retrieve game settings by game type
+ *     parameters:
+ *       - name: game_type
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [speed, knowledge]
+ *           example: speed
+ *     responses:
+ *       200:
+ *         description: Game setting retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/GameSetting'
+ *       400:
+ *         description: Invalid or missing game type
+ *       404:
+ *         description: Game setting not found
+ *
+ *   post:
+ *     summary: Create a new game setting
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GameSetting'
+ *     responses:
+ *       200:
+ *         description: Game setting created successfully
+ *       400:
+ *         description: Invalid or missing game setting data
+ *
+ *   put:
+ *     summary: Update an existing game setting
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GameSetting'
+ *     responses:
+ *       200:
+ *         description: Game setting updated successfully
+ *       400:
+ *         description: Invalid or missing game setting data
+ */
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
