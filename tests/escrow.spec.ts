@@ -485,18 +485,13 @@ describe("escrow", () => {
       );
 
       // Should fail due to invalid signature
-      expect(result.transactions).not.toHaveTransaction({
-        from: escrow.address,
-        to: user2.address,
-        success: false,
-        exitCode: 48401, // Your signature verification error code
-      });
       expect(result.transactions).toHaveTransaction({
         from: deployer.address,
         to: escrow.address,
         success: false,
         exitCode: 48401, // Your signature verification error code
       });
+
     });
 
     it("should reject withdrawal with invalid message hash", async () => {
@@ -531,16 +526,11 @@ describe("escrow", () => {
       );
 
       // Should fail due to hash mismatch
-      // Should fail due to invalid signature
-      expect(result.transactions).not.toHaveTransaction({
-        from: escrow.address,
-        to: user2.address,
-        success: false,
-        exitCode: 48401, // Your signature verification error code
-      });
       expect(result.transactions).toHaveTransaction({
-        from: deployer.getSender().address,
+        from: deployer.address,
         to: escrow.address,
+        success: false,
+        exitCode: 53044, // Your signature verification error code
       });
     });
 
@@ -577,16 +567,11 @@ describe("escrow", () => {
       );
 
       // Should fail due to hash mismatch (wrong address)
-      // Should fail due to invalid signature
-       expect(result.transactions).not.toHaveTransaction({
-        from: escrow.address,
-        to: user2.address,
-        success: false,
-        exitCode: 48401, // Your signature verification error code
-      });
-      expect(result.transactions).toHaveTransaction({
-        from: deployer.getSender().address,
+        expect(result.transactions).toHaveTransaction({
+        from: deployer.address,
         to: escrow.address,
+        success: false,
+        exitCode: 53044, // Your signature verification error code
       });
     });
   
