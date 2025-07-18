@@ -63,6 +63,44 @@ contract Escrow with Deployable {
         }.toCell());
     }
     
+     
+    // Withdraw function with signature verification
+    receive(msg: AdminWithdraw) {
+        let sender: Address = sender();
+        let recipient: Address = msg.recipient;
+        let amount: Int = msg.amount;
+        let signature: Slice = msg.signature;
+        let messageHash: Int = msg.messageHash;
+        
+        let currentTime: Int = now();
+        let messageToVerify: Cell = beginCell()
+            .storeAddress(sender)
+            .storeAddress(recipient)
+            .storeUint(amount, 64)  
+            .storeUint(currentTime / 3600, 32) // Hour-based timestamp for some tolerance
+            .endCell();
+        
+        let computedHash: Int = messageToVerify.hash();
+        require(computedHash == messageHash, "Invalid message hash");
+        
+        // Verify Ed25519 signature using Tact's built-in checkSignature function
+        require(checkSignature(messageHash, signature, self.adminPublicKey), "Invalid signature");
+        
+        // Send TON to user
+        send(SendParameters{
+            to: recipient,
+            value: amount,
+            mode: SendRemainingValue,
+            bounce: false
+        });
+        
+        // Emit withdraw event
+        emit(AdminWithdrawEvent{
+            recipient,
+            amount,
+            timestamp: now()
+        }.toCell());
+    }
     // Admin function to update admin public key
     receive(msg: SetAdmin) {
         // Only current admin can change the admin key
