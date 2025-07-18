@@ -1,6 +1,10 @@
+import { OpenedContract, TonClient, WalletContractV5R1 } from "@ton/ton";
 import "../../../types/globals";
 import fs from "fs";
 import path from "path";
+import { mnemonicToPrivateKey } from "@ton/crypto";
+
+
 
 global.convertCode = (codeString: string | null | undefined): number => {
   // Return 500 immediately if the input is null, undefined, or an empty string.
@@ -53,3 +57,21 @@ export const fileSystemLogger = {
   log: (...args: any[]) => logToFile("log", ...args),
   error: (...args: any[]) => logToFile("error", ...args),
 };
+
+
+export async function getAdminWallet(
+  tc: TonClient
+): Promise<OpenedContract<WalletContractV5R1>> {
+  if (!process.env.WALLET_MNEMONIC) {
+    throw new Error("WALLET_MNEMONIC is not set");
+  }
+  const mnemonics = process.env.WALLET_MNEMONIC.split(" ");
+  const keyPair = await mnemonicToPrivateKey(mnemonics);
+  
+  return tc.open(
+    WalletContractV5R1.create({
+      workchain: 0,
+      publicKey: keyPair.publicKey,
+    })
+  );
+}
