@@ -85,8 +85,8 @@ async function runBtcPredictionGame(
     : user_balance.balance - Number(toNano(btc_pred_req.amount));
 
   let update_user_res = await updateUserBalance(
+    btc_pred_req.wallet_address,
     new_balance,
-    btc_pred_req.wallet_address
   );
 
   if (update_user_res.code !== 200) {

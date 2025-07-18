@@ -41,8 +41,8 @@ async function updateUser(new_user: Users): Response<Users> {
 }
 
 async function updateUserBalance(
-  new_balance: number,
-  wallet_address: string
+  wallet_address: string,
+  new_balance: number
 ): Response<Users> {
   //   updating the user balance in the database
   const { error } = await supabase

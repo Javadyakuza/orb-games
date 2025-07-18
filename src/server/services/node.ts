@@ -1,10 +1,18 @@
 import { OpenedContract } from "@ton/core";
 import { fileSystemLogger } from "./helpers";
 import { TonClient, WalletContractV5R1 } from "@ton/ton";
-import { Escrow } from "../../../build/Escrow/Escrow_Escrow";
+import {
+  DepositEvent,
+  Escrow,
+  loadDepositEvent,
+  loadWithdrawEvent,
+  WithdrawEvent,
+} from "../../../build/Escrow/Escrow_Escrow";
 import { contractAddresses } from "../models/constants";
 import { TonApiClient } from "@ton-api/client";
 import { getTonApiClient, getTonCenterClient } from "../middleware/tonClient";
+import { getUser, updateUserBalance } from "../controllers/users/user";
+import { Users } from "../models/db/users";
 
 async function catchPigShopEvents(
   adminWallet: OpenedContract<WalletContractV5R1>,
@@ -13,8 +21,8 @@ async function catchPigShopEvents(
   tonAPiClient: TonApiClient,
   after_lt?: bigint
 ) {
-  console.log("➡️ Starting to catch PigShop events");
-  fileSystemLogger.log("➡️ Starting to catch PigShop events");
+  console.log("➡️ starting to get the escrow events");
+  fileSystemLogger.log("➡️ starting to get the escrow events");
   console.log("🔍 Listen address:", contractAddresses.escrow.toString());
   fileSystemLogger.log(
     "🔍 Listen address:",
@@ -40,13 +48,7 @@ async function catchPigShopEvents(
   console.log("📦 Transactions fetched:", txs.transactions.length);
   fileSystemLogger.log("📦 Transactions fetched:", txs.transactions.length);
 
-  let events: Array<
-    | extendedPigUpgradeEvent
-    | extendedPigApprovalEvent
-    | extendedPigCreationEvent
-    | extendedWithdrawFromPigEvent
-    | undefined
-  > = [];
+  let events: Array<WithdrawEvent | DepositEvent | undefined> = [];
 
   for (const tx of txs.transactions) {
     console.log("🔁 Processing transaction:", tx.hash);
@@ -67,13 +69,13 @@ async function catchPigShopEvents(
     for (const msg of tx.outMsgs) {
       console.log(
         "💬 Out message:",
-        Object.entries({ ...PigCollection.opcodes, ...PigShop.opcodes }).find(
+        Object.entries(Escrow.opcodes).find(
           ([key, value]) => BigInt(value) === msg.opCode
         )?.[0]
       );
       fileSystemLogger.log(
         "💬 Out message:",
-        Object.entries({ ...PigCollection.opcodes, ...PigShop.opcodes }).find(
+        Object.entries(Escrow.opcodes).find(
           ([key, value]) => BigInt(value) === msg.opCode
         )?.[0]
       );
@@ -81,48 +83,24 @@ async function catchPigShopEvents(
       try {
         if (
           msg.msgType === "ext_out_msg" &&
-          msg.opCode === BigInt(PigShop.opcodes.UpgradePig) &&
+          msg.opCode === BigInt(Escrow.opcodes.WithdrawEvent) &&
           msg.rawBody
         ) {
           events.push({
-            ...loadUpgradePig(msg.rawBody?.asSlice()),
-            tx_hash: tx.hash,
+            ...loadWithdrawEvent(msg.rawBody?.asSlice()),
           });
-          console.log("✅ Detected UpgradePig event");
-          fileSystemLogger.log("✅ Detected UpgradePig event");
+          console.log("✅ Detected withdraw event ");
+          fileSystemLogger.log("✅ Detected withdraw event ");
         } else if (
           msg.msgType === "ext_out_msg" &&
-          msg.opCode === BigInt(PigShop.opcodes.PigApprovalEvent) &&
+          msg.opCode === BigInt(Escrow.opcodes.DepositEvent) &&
           msg.rawBody
         ) {
           events.push({
-            ...loadPigApprovalEvent(msg.rawBody?.asSlice()),
-            tx_hash: tx.hash,
+            ...loadDepositEvent(msg.rawBody?.asSlice()),
           });
-          console.log("✅ Detected PigApprovalEvent");
-          fileSystemLogger.log("✅ Detected PigApprovalEvent");
-        } else if (
-          msg.msgType === "ext_out_msg" &&
-          msg.opCode === BigInt(PigShop.opcodes.WithdrawFromPigEvent) &&
-          msg.rawBody
-        ) {
-          events.push({
-            ...loadWithdrawFromPigEvent(msg.rawBody?.asSlice()),
-            tx_hash: tx.hash,
-          });
-          console.log("✅ Detected WithdrawFromPigEvent");
-          fileSystemLogger.log("✅ Detected WithdrawFromPigEvent");
-        } else if (
-          msg.msgType === "ext_out_msg" &&
-          msg.opCode === BigInt(PigShop.opcodes.PigCreationEvent) &&
-          msg.rawBody
-        ) {
-          events.push({
-            ...loadPigCreationEvent(msg.rawBody?.asSlice()),
-            tx_hash: tx.hash,
-          });
-          console.log("✅ Detected PigCreationEvent");
-          fileSystemLogger.log("✅ Detected PigCreationEvent");
+          console.log("✅ Detected deposit event");
+          fileSystemLogger.log("✅ Detected deposit event");
         }
       } catch (e) {
         console.log("❌ Error decoding message:", msg.decodedOpName, e);
@@ -152,176 +130,55 @@ async function catchPigShopEvents(
   }
 
   for (const event of events) {
-    if (event && event.userAddress) {
+    if (event && event.user) {
       console.log(
         "📍 Processing event for user:",
-        event.userAddress.toString()
+        event.user.toString()
       );
       fileSystemLogger.log(
         "📍 Processing event for user:",
-        event.userAddress.toString()
+        event.user.toString()
       );
 
-      const userAddr = event.userAddress.toRawString();
+      const userAddr = event.user.toRawString();
       let user = await getUser(userAddr);
-      const pig_data = await getPigs(userAddr);
-      console.log("🐷 Pig data loaded:", pig_data);
-      fileSystemLogger.log("🐷 Pig data loaded:", pig_data);
 
-      const bh = await findUsersBountyHunters(userAddr, pig_data.new_pig_level);
-      console.log("🏹 Bounty hunters fetched:", bh);
-      fileSystemLogger.log("🏹 Bounty hunters fetched:", bh);
 
-      if (event.$$type === "UpgradePig") {
-        console.log("🛠️ Handling UpgradePig event");
-        fileSystemLogger.log("🛠️ Handling UpgradePig event");
+      if (event.$$type === "WithdrawEvent") {
+        console.log("🛠️ Handling withdraw event");
+        fileSystemLogger.log("🛠️ Handling withdraw event");
 
-        const isDup = await isDuplicatePurchase(
-          userAddr,
-          pig_data.new_pig_level
-        );
-        console.log("🔁 Is duplicate purchase?", isDup);
-        fileSystemLogger.log("🔁 Is duplicate purchase?", isDup);
+        // decreasing the user balance
+        await updateUserBalance(userAddr, Number(BigInt((user.message as Users).balance) - event.amount));
 
-        if (!isDup) {
-          console.log(
-            "⁉️ UpgradePig tx initiated check for potential user tree update ..."
-          );
-          fileSystemLogger.log(
-            "⁉️ UpgradePig tx initiated check for potential user tree update ..."
-          );
-
-          const bh = await findUsersBountyHunters(
-            userAddr,
-            pig_data.new_pig_level
-          );
-
-          const tx_id = TxId.create(userAddr, pig_data.new_pig_level);
-
-          console.log("🚀 Sending pig approval message");
-          fileSystemLogger.log("🚀 Sending pig approval message");
-          await sendPigApproval(
-            await BountyHuntersForPigApproval(bh),
-            adminWallet,
-            PigShopContract,
-            pig_data.address,
-            userAddr
-          );
-
-          await initTxHistory({
-            tx_id,
-            tx_hash: event.tx_hash,
-            wallet_address: userAddr,
-            request_status: "PigUpgradePending",
-            upgraded_pig_level: pig_data.new_pig_level,
-          });
-
-          console.log("📜 Tx history initialized for UpgradePig");
-          fileSystemLogger.log("📜 Tx history initialized for UpgradePig");
-        }
-      }
-
-      if (event.$$type === "PigApprovalEvent") {
-        console.log("✅ Approval received for:", userAddr);
-        fileSystemLogger.log("✅ Approval received for:", userAddr);
-
-        event.referrer = Dictionary.empty<Address, bigint>().set(
-          event.referrerNftAddress,
-          event.referrerAmount
-        );
-
-        console.log("👔 Updated the referrer amount for:", event.referrer);
-        fileSystemLogger.log(
-          "👔 Updated the referrer amount for:",
-          event.referrer
-        );
-
-        //-----------------------------------------
-        // update the bounty hunter balances (piggy_bank_balance on the users table)
-        //-----------------------------------------
-
-        await updateBountyHuntersBalances({
-          referrer: event.referrer,
-          users: event.userBountyHunters,
-          admins: event.adminsShares,
-        });
-
-        //-----------------------------------------
-        // update the user pig (current_pig on the users table)
-        //-----------------------------------------
-        await upgradeUserPig(userAddr);
-
-        //-----------------------------------------
-        // update the transaction history (tx_history table)
-        //-----------------------------------------
-        await updateTxHistory({
-          tx_id: TxId.create(userAddr, pig_data.new_pig_level),
+        // adding the transaction to the history
+        await addTxHistory({
+          tx_id: TxId.create(userAddr, event.amount),
           tx_hash: event.tx_hash,
           wallet_address: userAddr,
-          request_status: "PigPurchaseApproved",
-          upgraded_pig_level: pig_data.new_pig_level,
+          request_status: "Withdraw",
+          withdrawn_amount: event.amount,
         });
-
-        //-----------------------------------------
-        // update the referrals rewards history (rewards_history table)
-        //-----------------------------------------
-        const updateRes = await updateReferralsRewardsHistory(event);
-        console.log("📦 Referral reward update:", updateRes);
-        fileSystemLogger.log("📦 Referral reward update:", updateRes);
-
-        if (!updateRes)
-          throw new Error("Failed to update referrals rewards history!");
       }
 
-      if (event.$$type === "PigCreationEvent") {
-        console.log("🐣 Handling PigCreationEvent");
-        fileSystemLogger.log("🐣 Handling PigCreationEvent");
-        //-----------------------------------------
-        // get the parent pig in ternary tree
-        //-----------------------------------------
-        let parent_id: number | undefined;
-        const parentPigTreeIndex = (event.nftIndex - 1n) / 3n;
-        if (parentPigTreeIndex > 0n) {
-          const parentPigAddress =
-            await PigCollectionContract.getGetNftAddressByIndex(
-              parentPigTreeIndex
-            );
-          parent_id =
-            (
-              (await getUserByPigAddress(parentPigAddress.toRawString())) ||
-              (await getGenesisUser())
-            )?.id ?? 1;
-        } else {
-          // 0 is root/genesis
-          parent_id = (await getGenesisUser())?.id ?? 1;
-        }
-        //-----------------------------------------
-        // update the user pig address (pig_address on the users table) and parent_id
-        //-----------------------------------------
-        await upgradeUserPigAddressAndParentId(
-          userAddr,
-          event.nft.toRawString(),
-          parent_id
-        );
-        console.log("✅ User pig address and parent_id upgraded");
-        fileSystemLogger.log("✅ User pig address and parent_id upgraded");
+      if (event.$$type === "DepositEvent") {
+        console.log("🛠️ Handling deposit event");
+        fileSystemLogger.log("🛠️ Handling deposit event");
+
+        // increasing the user balance
+        await updateUserBalance(userAddr, Number(BigInt((user.message as Users).balance) + event.amount));
+
+        // adding the transaction to the history
+        await addTxHistory({
+          tx_id: TxId.create(userAddr, event.amount),
+          tx_hash: event.tx_hash,
+          wallet_address: userAddr,
+          request_status: "Withdraw",
+          withdrawn_amount: event.amount,
+        });
       }
 
-      if (event.$$type === "WithdrawFromPigEvent") {
-        console.log("🏧 Handling WithdrawFromPigEvent");
-        fileSystemLogger.log("🏧 Handling WithdrawFromPigEvent");
-        //-----------------------------------------
-        // update the user piggy bank balance (piggy_bank_balance on the users table)
-        //-----------------------------------------
-
-        await updateUserPiggyBankBalance(
-          userAddr,
-          event.nft.toRawString(),
-          event.amount
-        );
-        console.log("💰 User piggy bank balance updated");
-        fileSystemLogger.log("💰 User piggy bank balance updated");
-      }
+     
     } else {
       console.log("⚠️ No event with userAddress was detected");
       fileSystemLogger.log("⚠️ No event with userAddress was detected");
@@ -343,7 +200,6 @@ export async function listenPigShopForever() {
 
     const tc = getTonCenterClient();
     const tac = getTonApiClient();
-    const adminWallet = await getAdminWallet(tc);
 
     console.log("👛 Admin wallet loaded:", adminWallet.address.toString());
     fileSystemLogger.log(

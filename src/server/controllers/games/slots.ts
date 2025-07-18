@@ -83,8 +83,8 @@ export async function runSlotsGame(
     : user_balance.balance - Number(toNano(slots_req.amount));
 
   let update_user_res = await updateUserBalance(
-    new_balance,
-    slots_req.wallet_address
+      slots_req.wallet_address,
+      new_balance,
   );
 
   if (update_user_res.code !== 200) {

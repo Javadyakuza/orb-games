@@ -96,8 +96,8 @@ async function runFortuneWheelGame(
     : user_balance.balance - Number(toNano(fortune_wheel_req.amount));
 
   let update_user_res = await updateUserBalance(
-    new_balance,
-    fortune_wheel_req.wallet_address
+      fortune_wheel_req.wallet_address,
+      new_balance,
   );
 
   if (update_user_res.code !== 200) {
