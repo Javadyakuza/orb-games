@@ -17,7 +17,7 @@ import { addTxHistory } from "../controllers/transactions/tx-history";
 import {
   extendedDepositEvent,
   extendedWithdrawEvent,
-} from "../models/custom/events";
+} from "../models/custom/contract";
 
 async function catchPigShopEvents(
   escrowContract: OpenedContract<Escrow>,

@@ -7,9 +7,9 @@ import {
   loadWithdrawEvent,
 } from "../build/Escrow/Escrow_Escrow";
 import "@ton/test-utils";
-import { compile } from "@ton/blueprint";
 import { KeyPair, keyPairFromSeed, sign } from "@ton/crypto";
 import { randomBytes } from "crypto";
+import { createMessageHash, createRealSignature } from "../src//server/services/helpers";
 
 describe("escrow", () => {
   let code: Cell;
@@ -95,33 +95,6 @@ describe("escrow", () => {
   });
 
   describe("Withdraw functionality", () => {
-    // Helper function to create message hash for withdrawal
-    function createMessageHash(
-      userAddress: Address,
-      amount: bigint,
-      timestamp: number
-    ): bigint {
-      const messageCell = beginCell()
-        .storeAddress(userAddress)
-        .storeUint(amount, 64)
-        .storeUint(Math.floor(timestamp / 3600), 32)
-        .endCell();
-
-      return BigInt("0x" + messageCell.hash().toString("hex"));
-    }
-
-    // Helper function to create real signature
-    function createRealSignature(messageHash: bigint): Cell {
-      // Convert bigint to 32-byte buffer for signing
-      const hashHex = messageHash.toString(16).padStart(64, "0");
-      const hashBuffer = Buffer.from(hashHex, "hex");
-
-      // Sign with admin's private key
-      const signature = sign(hashBuffer, adminKeyPair.secretKey);
-
-      return beginCell().storeBuffer(signature).endCell();
-    }
-
     // Helper function to create invalid signature for testing
     function createInvalidSignature(): Cell {
       return beginCell()
@@ -150,7 +123,10 @@ describe("escrow", () => {
         withdrawAmount,
         currentTime
       );
-      const signature = createRealSignature(messageHash);
+      const signature = createRealSignature(
+        messageHash,
+        adminKeyPair.secretKey
+      );
 
       let user1Balance = await user1.getBalance();
       console.log("User balance before withdrawal:", user1Balance);
@@ -161,7 +137,7 @@ describe("escrow", () => {
         {
           $$type: "Withdraw",
           amount: withdrawAmount,
-          signature: signature.asSlice(),
+          signature: signature,
           messageHash,
         }
       );
@@ -252,7 +228,10 @@ describe("escrow", () => {
       const wrongMessageHash = BigInt(
         "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
       );
-      const signature = createRealSignature(wrongMessageHash);
+      const signature = createRealSignature(
+        wrongMessageHash,
+        adminKeyPair.secretKey
+      );
 
       const result = await escrow.send(
         user1.getSender(),
@@ -260,7 +239,7 @@ describe("escrow", () => {
         {
           $$type: "Withdraw",
           amount: withdrawAmount,
-          signature: signature.asSlice(),
+          signature: signature,
           messageHash: wrongMessageHash,
         }
       );
@@ -290,7 +269,10 @@ describe("escrow", () => {
         withdrawAmount,
         currentTime
       );
-      const signature = createRealSignature(messageHash);
+      const signature = createRealSignature(
+        messageHash,
+        adminKeyPair.secretKey
+      );
 
       const result = await escrow.send(
         user1.getSender(), // But user1 is sending the message
@@ -298,7 +280,7 @@ describe("escrow", () => {
         {
           $$type: "Withdraw",
           amount: withdrawAmount,
-          signature: signature.asSlice(),
+          signature: signature,
           messageHash,
         }
       );
@@ -491,7 +473,6 @@ describe("escrow", () => {
         success: false,
         exitCode: 48401, // Your signature verification error code
       });
-
     });
 
     it("should reject withdrawal with invalid message hash", async () => {
@@ -567,13 +548,12 @@ describe("escrow", () => {
       );
 
       // Should fail due to hash mismatch (wrong address)
-        expect(result.transactions).toHaveTransaction({
+      expect(result.transactions).toHaveTransaction({
         from: deployer.address,
         to: escrow.address,
         success: false,
         exitCode: 53044, // Your signature verification error code
       });
     });
-  
   });
 });

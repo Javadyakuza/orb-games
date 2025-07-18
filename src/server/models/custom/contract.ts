@@ -7,3 +7,13 @@ export interface extendedWithdrawEvent extends WithdrawEvent {
 export interface extendedDepositEvent extends DepositEvent {
   tx_hash: string;
 }
+
+export interface WithdrawParams {
+  user_address: string;
+  amount: string;
+}
+
+export interface WithdrawResponse {
+  message_hash: string;
+  signature: string;
+}
