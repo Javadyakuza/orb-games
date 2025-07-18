@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@jest/globals": "^30.0.4",
+    "@sentry/nextjs": "^9.40.0",
     "@supabase/supabase-js": "^2.51.0",
     "@telegram-apps/sdk-react": "^3.2.4",
     "@telegram-apps/telegram-ui": "^2.1.5",

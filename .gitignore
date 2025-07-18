@@ -39,3 +39,6 @@ next-env.d.ts
 .idea
 
 certificates
+
+# Sentry Config File
+.env.sentry-build-plugin
