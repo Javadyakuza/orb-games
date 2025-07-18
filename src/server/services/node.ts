@@ -13,10 +13,14 @@ import { TonApiClient } from "@ton-api/client";
 import { getTonApiClient, getTonCenterClient } from "../middleware/tonClient";
 import { getUser, updateUserBalance } from "../controllers/users/user";
 import { Users } from "../models/db/users";
+import { addTxHistory } from "../controllers/transactions/tx-history";
+import {
+  extendedDepositEvent,
+  extendedWithdrawEvent,
+} from "../models/custom/events";
 
 async function catchPigShopEvents(
-  adminWallet: OpenedContract<WalletContractV5R1>,
-  PigShopContract: OpenedContract<Escrow>,
+  escrowContract: OpenedContract<Escrow>,
   tonCenterClient: TonClient,
   tonAPiClient: TonApiClient,
   after_lt?: bigint
@@ -48,7 +52,8 @@ async function catchPigShopEvents(
   console.log("📦 Transactions fetched:", txs.transactions.length);
   fileSystemLogger.log("📦 Transactions fetched:", txs.transactions.length);
 
-  let events: Array<WithdrawEvent | DepositEvent | undefined> = [];
+  let events: Array<extendedWithdrawEvent | extendedDepositEvent | undefined> =
+    [];
 
   for (const tx of txs.transactions) {
     console.log("🔁 Processing transaction:", tx.hash);
@@ -88,6 +93,7 @@ async function catchPigShopEvents(
         ) {
           events.push({
             ...loadWithdrawEvent(msg.rawBody?.asSlice()),
+            tx_hash: tx.hash,
           });
           console.log("✅ Detected withdraw event ");
           fileSystemLogger.log("✅ Detected withdraw event ");
@@ -98,6 +104,7 @@ async function catchPigShopEvents(
         ) {
           events.push({
             ...loadDepositEvent(msg.rawBody?.asSlice()),
+            tx_hash: tx.hash,
           });
           console.log("✅ Detected deposit event");
           fileSystemLogger.log("✅ Detected deposit event");
@@ -131,10 +138,7 @@ async function catchPigShopEvents(
 
   for (const event of events) {
     if (event && event.user) {
-      console.log(
-        "📍 Processing event for user:",
-        event.user.toString()
-      );
+      console.log("📍 Processing event for user:", event.user.toString());
       fileSystemLogger.log(
         "📍 Processing event for user:",
         event.user.toString()
@@ -143,21 +147,22 @@ async function catchPigShopEvents(
       const userAddr = event.user.toRawString();
       let user = await getUser(userAddr);
 
-
       if (event.$$type === "WithdrawEvent") {
         console.log("🛠️ Handling withdraw event");
         fileSystemLogger.log("🛠️ Handling withdraw event");
 
         // decreasing the user balance
-        await updateUserBalance(userAddr, Number(BigInt((user.message as Users).balance) - event.amount));
+        await updateUserBalance(
+          userAddr,
+          Number(BigInt((user.message as Users).balance) - event.amount)
+        );
 
         // adding the transaction to the history
         await addTxHistory({
-          tx_id: TxId.create(userAddr, event.amount),
           tx_hash: event.tx_hash,
           wallet_address: userAddr,
-          request_status: "Withdraw",
-          withdrawn_amount: event.amount,
+          deposit: false,
+          amount: Number(event.amount),
         });
       }
 
@@ -166,19 +171,19 @@ async function catchPigShopEvents(
         fileSystemLogger.log("🛠️ Handling deposit event");
 
         // increasing the user balance
-        await updateUserBalance(userAddr, Number(BigInt((user.message as Users).balance) + event.amount));
+        await updateUserBalance(
+          userAddr,
+          Number(BigInt((user.message as Users).balance) + event.amount)
+        );
 
         // adding the transaction to the history
         await addTxHistory({
-          tx_id: TxId.create(userAddr, event.amount),
           tx_hash: event.tx_hash,
           wallet_address: userAddr,
-          request_status: "Withdraw",
-          withdrawn_amount: event.amount,
+          deposit: true,
+          amount: Number(event.amount),
         });
       }
-
-     
     } else {
       console.log("⚠️ No event with userAddress was detected");
       fileSystemLogger.log("⚠️ No event with userAddress was detected");
@@ -201,33 +206,17 @@ export async function listenPigShopForever() {
     const tc = getTonCenterClient();
     const tac = getTonApiClient();
 
-    console.log("👛 Admin wallet loaded:", adminWallet.address.toString());
-    fileSystemLogger.log(
-      "👛 Admin wallet loaded:",
-      adminWallet.address.toString()
-    );
+    const escrow = tc.open(Escrow.fromAddress(contractAddresses.escrow));
 
-    const pigShop = tc.open(Escrow.fromAddress(contractAddresses.escrow));
-    const pigCollection = tc.open(
-      PigCollection.fromAddress(contractAddresses.escrow)
-    );
-
-    console.log("🏪 PigShop contract opened at:", pigShop.address.toString());
+    console.log("🏪 escrow contract opened at:", escrow.address.toString());
     fileSystemLogger.log(
-      "🏪 PigShop contract opened at:",
-      pigShop.address.toString()
+      "🏪 escrow contract opened at:",
+      escrow.address.toString()
     );
 
     while (true) {
       try {
-        lastLt = await catchPigShopEvents(
-          adminWallet,
-          pigShop,
-          pigCollection,
-          tc,
-          tac,
-          lastLt
-        );
+        lastLt = await catchPigShopEvents(escrow, tc, tac, lastLt);
 
         // waiting for 1 second before checking the next lt
         await new Promise((resolve) => setTimeout(resolve, 2000));

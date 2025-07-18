@@ -25,7 +25,7 @@ async function getTxHIstories(wallet_address: string): Response<TxHistory> {
   };
 }
 
-async function addTxHistory(tx_data: Users): Response<TxHistory> {
+async function addTxHistory(tx_data: TxHistory): Response<TxHistory> {
   // adding a new tx history to the database
   const { error } = await supabase.from("tx_history").insert(tx_data);
   if (error) {
@@ -38,4 +38,4 @@ async function addTxHistory(tx_data: Users): Response<TxHistory> {
   };
 }
 
-export { getTxHIstories };
+export { getTxHIstories, addTxHistory };
